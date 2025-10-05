@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telematics Insurance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="app" class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Telematics Insurance</h1>
+                <div class="space-x-4">
+                    <button id="loginBtn" class="bg-blue-700 px-4 py-2 rounded hover:bg-blue-800">Login</button>
+                    <button id="registerBtn" class="bg-green-600 px-4 py-2 rounded hover:bg-green-700">Register</button>
+                    <button id="logoutBtn" class="bg-red-600 px-4 py-2 rounded hover:bg-red-700 hidden">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container mx-auto p-6">
+            <!-- Login Form -->
+            <div id="loginForm" class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold mb-4">Login</h2>
+                <form id="loginFormElement">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+                        <input type="email" id="loginEmail" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+                        <input type="password" id="loginPassword" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" required>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md hidden">
+                <h2 class="text-2xl font-bold mb-4">Register</h2>
+                <form id="registerFormElement">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Full Name:</label>
+                        <input type="text" id="registerName" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+                        <input type="email" id="registerEmail" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+                        <input type="password" id="registerPassword" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" required>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Register</button>
+                </form>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Current Score Card -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-2">Current Risk Score</h3>
+                        <div class="text-3xl font-bold text-blue-600" id="currentScore">85</div>
+                        <div class="text-sm text-gray-600">Risk Band: <span id="riskBand">Medium</span></div>
+                    </div>
+
+                    <!-- Premium Adjustment -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-2">Premium Adjustment</h3>
+                        <div class="text-3xl font-bold text-green-600" id="premiumAdjustment">-5%</div>
+                        <div class="text-sm text-gray-600">Monthly savings</div>
+                    </div>
+
+                    <!-- Total Trips -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold mb-2">Total Trips</h3>
+                        <div class="text-3xl font-bold text-purple-600" id="totalTrips">127</div>
+                        <div class="text-sm text-gray-600">This month</div>
+                    </div>
+                </div>
+
+                <!-- Recent Trips -->
+                <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4">Recent Trips</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full table-auto">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-2 text-left">Date</th>
+                                    <th class="px-4 py-2 text-left">Distance</th>
+                                    <th class="px-4 py-2 text-left">Duration</th>
+                                    <th class="px-4 py-2 text-left">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tripsTable">
+                                <!-- Trips will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="message" class="hidden fixed top-4 right-4 p-4 rounded-lg shadow-md max-w-md">
+                <div id="messageText"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple state management
+        let currentUser = null;
+        let authToken = null;
+
+        // API base URL
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        // Show message
+        function showMessage(text, type = 'info') {
+            const messageEl = document.getElementById('message');
+            const messageTextEl = document.getElementById('messageText');
+            messageTextEl.textContent = text;
+            messageEl.className = `fixed top-4 right-4 p-4 rounded-lg shadow-md max-w-md ${type === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
+            messageEl.classList.remove('hidden');
+            setTimeout(() => messageEl.classList.add('hidden'), 3000);
+        }
+
+        // Set up axios defaults
+        axios.defaults.baseURL = API_BASE;
+        axios.interceptors.request.use(config => {
+            if (authToken) {
+                config.headers.Authorization = `Bearer ${authToken}`;
+            }
+            return config;
+        });
+
+        // Login form handler
+        document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await axios.post('/auth/login', {
+                    email,
+                    password
+                });
+                
+                authToken = response.data.access_token;
+                currentUser = response.data.user;
+                showMessage('Login successful!', 'success');
+                showDashboard();
+            } catch (error) {
+                showMessage('Login failed: ' + (error.response?.data?.detail || error.message), 'error');
+            }
+        });
+
+        // Register form handler
+        document.getElementById('registerFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            try {
+                await axios.post('/auth/register', {
+                    full_name: name,
+                    email,
+                    password
+                });
+                showMessage('Registration successful! Please login.', 'success');
+                showLoginForm();
+            } catch (error) {
+                showMessage('Registration failed: ' + (error.response?.data?.detail || error.message), 'error');
+            }
+        });
+
+        // Show login form
+        function showLoginForm() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginBtn').classList.remove('hidden');
+            document.getElementById('registerBtn').classList.remove('hidden');
+            document.getElementById('logoutBtn').classList.add('hidden');
+        }
+
+        // Show register form
+        function showRegisterForm() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        // Show dashboard
+        function showDashboard() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('loginBtn').classList.add('hidden');
+            document.getElementById('registerBtn').classList.add('hidden');
+            document.getElementById('logoutBtn').classList.remove('hidden');
+            loadDashboardData();
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Load user's latest score
+                const scoreResponse = await axios.get(`/score/user/${currentUser.id}/latest`);
+                if (scoreResponse.data) {
+                    document.getElementById('currentScore').textContent = scoreResponse.data.score;
+                    document.getElementById('riskBand').textContent = scoreResponse.data.band;
+                }
+
+                // Load trips
+                const tripsResponse = await axios.get('/telematics/trips');
+                const trips = tripsResponse.data;
+                document.getElementById('totalTrips').textContent = trips.length;
+
+                // Populate trips table
+                const tripsTable = document.getElementById('tripsTable');
+                tripsTable.innerHTML = trips.slice(0, 5).map(trip => `
+                    <tr>
+                        <td class="px-4 py-2">${new Date(trip.start_time).toLocaleDateString()}</td>
+                        <td class="px-4 py-2">${(trip.distance_km || 0).toFixed(1)} km</td>
+                        <td class="px-4 py-2">${Math.round((new Date(trip.end_time) - new Date(trip.start_time)) / 60000)} min</td>
+                        <td class="px-4 py-2">${trip.risk_score || 'N/A'}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('loginBtn').addEventListener('click', showLoginForm);
+        document.getElementById('registerBtn').addEventListener('click', showRegisterForm);
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            authToken = null;
+            currentUser = null;
+            showLoginForm();
+        });
+
+        // Initialize
+        showLoginForm();
+    </script>
+</body>
+</html>

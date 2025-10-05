@@ -1,0 +1,11 @@
+lat,lon,accident_type,severity,date,time
+40.7128,-74.0060,collision,minor,2024-01-15,14:30:00
+40.7130,-74.0058,pedestrian,moderate,2024-01-14,09:15:00
+40.7132,-74.0056,collision,major,2024-01-13,16:45:00
+40.7134,-74.0054,rollover,minor,2024-01-12,11:20:00
+40.7136,-74.0052,collision,moderate,2024-01-11,13:10:00
+40.7138,-74.0050,pedestrian,major,2024-01-10,08:30:00
+40.7140,-74.0048,collision,minor,2024-01-09,15:25:00
+40.7142,-74.0046,rollover,moderate,2024-01-08,12:40:00
+40.7144,-74.0044,collision,major,2024-01-07,17:15:00
+40.7146,-74.0042,pedestrian,minor,2024-01-06,10:50:00
